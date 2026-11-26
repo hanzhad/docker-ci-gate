@@ -20,6 +20,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run unit tests
         run: python3 -m unittest discover -s tests -v
+      - name: Run image and blocker tests
+        run: bash tests/test-ci-runner-images-blockers.sh
+      - name: Run CLI and status tests
+        run: bash tests/test-ci-runner-cli-status.sh
+      - name: Run gate scheduler tests
+        run: bash tests/test-ci-runner-gate-scheduler.sh
 
   scan:
     runs-on: ubuntu-latest

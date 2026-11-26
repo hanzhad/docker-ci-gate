@@ -1,0 +1,15 @@
+# What `ci-runner.sh seed` puts in the read-only seed every job sees.
+#
+# One tool per line. A version a workflow asks for that is not listed still
+# works: the job downloads it into its own container and it dies there. Listing
+# it only makes it warm. Bump a line here, then `ci-runner.sh seed`.
+#
+#   node <exact version>          what setup-node would put in the tool cache
+#   playwright <exact version>    the browsers `npx playwright install chromium`
+#                                 fetches for that version of playwright-core
+#
+# node 24: host-repo's check.yml asks for `24`, both project repositories' .nvmrc
+# say `24`, and setup-node takes any cached 24.x for that.
+# playwright 1.61.1: the locked playwright-core in both project repositories.
+node 24.21.0
+playwright 1.61.1
