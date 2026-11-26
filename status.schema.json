@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hanzhad/docker-ci-gate/blob/main/status.schema.json",
+  "title": "ci-runner status --json",
+  "description": "What `ci-runner.sh status --json` prints: the gate, the file it reports every tick, and each registered repository's switch. The contract the panel reads; schema 1. A field is added, never changed in meaning, without raising `schema`.",
+  "type": "object",
+  "required": ["schema", "gate", "status", "repositories"],
+  "properties": {
+    "schema": {
+      "description": "Version of this document's shape. 1.",
+      "const": 1
+    },
+    "gate": {
+      "description": "The gate container as docker reports it, plus what can be told about its credential without reading it.",
+      "type": "object",
+      "required": ["state", "locked", "paused", "commit", "token_expires", "owner_tokens"],
+      "properties": {
+        "state": {
+          "description": "The container's State.Status (running, exited, ...), or absent when there is no gate.",
+          "type": "string"
+        },
+        "locked": {
+          "description": "True when the gate holds no credential (a fresh start or a reboot) and serves nothing until unlocked. Null unless the gate is running.",
+          "type": ["boolean", "null"]
+        },
+        "paused": {
+          "description": "True while the pause flag is set: running jobs finish, nothing new starts. Null unless the gate is running.",
+          "type": ["boolean", "null"]
+        },
+        "commit": {
+          "description": "The commit the running gate image was built from (short sha, `-dirty` when gate/ had uncommitted changes), from its GATE_COMMIT environment. Null when absent or the image predates it.",
+          "type": ["string", "null"]
+        },
+        "token_expires": {
+          "description": "Expiry date (YYYY-MM-DD) of the gate's main token, from the file beside it. Null when locked or when none was recorded. The token itself is never read.",
+          "type": ["string", "null"]
+        },
+        "owner_tokens": {
+          "description": "The owners (organisations) the gate holds a token of their own for. Empty when there are none or the gate is not running.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["owner", "expires"],
+            "properties": {
+              "owner": {
+                "description": "The owner's login, lower-cased as the gate stores it.",
+                "type": "string"
+              },
+              "expires": {
+                "description": "That token's expiry date (YYYY-MM-DD), or null when none was recorded.",
+                "type": ["string", "null"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "status": {
+      "description": "The file the gate rewrites every tick at /run/gate/status.json, passed through as it is; its `ts` says how fresh it is. Null when the gate is not running or the file is unreadable.",
+      "type": ["object", "null"],
+      "properties": {
+        "schema": {
+          "description": "Version of this file's shape. 1.",
+          "const": 1
+        },
+        "ts": {
+          "description": "When the gate wrote the file (UTC, ISO 8601). Written at the top of the tick, so it is the last heartbeat.",
+          "type": "string"
+        },
+        "locked": {
+          "description": "True when the gate has no credential. Counts and queue then describe the last pass, not new work.",
+          "type": "boolean"
+        },
+        "paused": {
+          "description": "True while the pause flag is set.",
+          "type": "boolean"
+        },
+        "repos": {
+          "description": "The repositories the gate is told to serve (owner/repo).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "queue": {
+          "description": "Jobs GitHub had queued for this machine's labels at the last pass, in the order they are admitted.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repo": {
+                "description": "The repository the job is queued in.",
+                "type": "string"
+              },
+              "class": {
+                "description": "The runner class the job asked for: now, big, little or mega.",
+                "type": "string"
+              },
+              "since": {
+                "description": "When GitHub queued or started the job (ISO 8601).",
+                "type": "string"
+              },
+              "run_id": {
+                "description": "The workflow run id.",
+                "type": ["integer", "null"]
+              },
+              "name": {
+                "description": "The workflow run name.",
+                "type": ["string", "null"]
+              },
+              "branch": {
+                "description": "The head branch of the workflow run.",
+                "type": ["string", "null"]
+              }
+            }
+          }
+        },
+        "non_local_queued": {
+          "description": "Count of queued workflow runs with non-local jobs (such as dependabot or ubuntu-latest), excluding 0-job ghost runs.",
+          "type": "integer"
+        },
+        "rate_limit": {
+          "description": "Last observed GitHub REST API rate-limit state.",
+          "type": "object",
+          "properties": {
+            "remaining": {
+              "description": "Remaining requests in the current window.",
+              "type": ["integer", "null"]
+            },
+            "limit": {
+              "description": "Maximum requests per window.",
+              "type": ["integer", "null"]
+            },
+            "reset_at": {
+              "description": "When the rate-limit window resets (UTC, ISO 8601), or null.",
+              "type": ["string", "null"]
+            },
+            "throttled": {
+              "description": "True when the gate is throttling or pausing due to low remaining quota.",
+              "type": "boolean"
+            }
+          }
+        },
+        "busy": {
+          "description": "Runners GitHub reports busy in the served repositories at the last pass.",
+          "type": "integer"
+        },
+        "used": {
+          "description": "Cores of the budget in use: the cost of every runner container the gate owns.",
+          "type": "integer"
+        },
+        "budget": {
+          "description": "The budget in cores in force, live override or boot flag.",
+          "type": "integer"
+        },
+        "big_used": {
+          "description": "Cores held by big and now runners, counted against big_cap.",
+          "type": "integer"
+        },
+        "big_cap": {
+          "description": "The most of the budget big runners may hold together.",
+          "type": "integer"
+        },
+        "class_costs": {
+          "description": "What one runner of each class costs against the budget, in cores.",
+          "type": "object",
+          "properties": {
+            "big": { "description": "Cost of a big (and now) runner.", "type": "integer" },
+            "little": { "description": "Cost of a little runner.", "type": "integer" },
+            "mega": { "description": "Cost of a mega runner: the whole current budget (read live, so it follows a budget change), or the big cost when the gate does not serve mega.", "type": "integer" }
+          }
+        },
+        "memory_available_mb": {
+          "description": "MemAvailable of the machine the gate runs on, in MiB. Null when it could not be read.",
+          "type": ["integer", "null"]
+        },
+        "memory_floor_mb": {
+          "description": "The memory below which no job is started, in MiB.",
+          "type": ["integer", "null"]
+        },
+        "load": {
+          "description": "The one-minute load average. Null when it could not be read.",
+          "type": ["number", "null"]
+        },
+        "load_ceiling": {
+          "description": "The load above which no job is started.",
+          "type": ["number", "null"]
+        },
+        "draining": {
+          "description": "The mega job the gate is holding the line for (nothing queued behind it starts until the machine is empty), or null when no mega job is held.",
+          "type": ["object", "null"],
+          "properties": {
+            "repo": { "description": "owner/repo of the mega job.", "type": "string" },
+            "ref": { "description": "The run id and job id, as run/job.", "type": "string" },
+            "since": { "description": "When the gate first held the line for it (ISO 8601).", "type": "string" },
+            "seconds": { "description": "How long it has been held.", "type": "integer" },
+            "overdue": { "description": "True once the hold is past MEGA_DRAIN_WARN. Nothing is forced.", "type": "boolean" }
+          }
+        },
+        "waiting": {
+          "description": "Why a queued job did not start at the last pass, in words (memory, load or budget), or null when nothing waited.",
+          "type": ["string", "null"]
+        },
+        "commit": {
+          "description": "The commit the gate was built from.",
+          "type": "string"
+        }
+      }
+    },
+    "repositories": {
+      "description": "Every repository in the registry (the ci-local topic) and whether its CI runs here.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repo", "ci_runner"],
+        "properties": {
+          "repo": {
+            "description": "owner/repo.",
+            "type": "string"
+          },
+          "ci_runner": {
+            "description": "The repository's CI_RUNNER variable: 1 runs CI on this machine, 0 on GitHub. Null when unset or unreadable. Read from GitHub and kept for 60 seconds.",
+            "type": ["integer", "string", "null"]
+          },
+          "mega": {
+            "description": "The repository's CI_RUNNER_LABEL_MEGA variable: the label its mega job runs on (the switch is on), or null when unset (the job runs as an ordinary big). Read from GitHub and kept for 60 seconds.",
+            "type": ["string", "null"]
+          }
+        }
+      }
+    }
+  }
+}
