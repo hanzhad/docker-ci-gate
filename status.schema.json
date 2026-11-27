@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/hanzhad/docker-ci-gate/blob/main/status.schema.json",
   "title": "ci-runner status --json",
-  "description": "What `ci-runner.sh status --json` prints: the gate, the file it reports every tick, and each registered repository's switch. The contract the panel reads; schema 1. A field is added, never changed in meaning, without raising `schema`.",
+  "description": "What `ci-runner.sh status --json` prints: the gate, the file it reports every tick, and each registered repository's switch. The contract status consumers (such as ops-console) read; schema 1. A field is added, never changed in meaning, without raising `schema`.",
   "type": "object",
   "required": ["schema", "gate", "status", "repositories"],
   "properties": {

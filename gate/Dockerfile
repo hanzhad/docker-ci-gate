@@ -1,4 +1,4 @@
-# The gate — the design docs.
+# The gate — the architecture docs.
 #
 # It holds the credential and decides how many runners exist. It never executes
 # anything from a repository, which is the whole reason it is a separate

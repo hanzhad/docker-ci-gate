@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Fills the read-only seed every runner mounts at /opt/seed — host-repo an earlier change.
+# Fills the read-only seed every runner mounts at /opt/seed — the repository .
 #
 # Run by `ci-runner.sh seed` (and at the end of `build`) in a container of the
 # runner image that has the seed volume mounted read-write and nothing else: no
-# checkout, no docker socket, no job. That is the whole point. Until an earlier change the
+# checkout, no docker socket, no job. That is the whole point. Until the
 # tool cache and ~/.cache were filled by whichever job got there first, and
 # every later job in every repository ran what it left — the npm worm of
 # 2026-07-06 lived in exactly such a file, npm's own lib/cli.js. Here the only

@@ -1,4 +1,4 @@
-# The self-hosted CI runner — the design docs.
+# The self-hosted CI runner — the architecture docs.
 #
 # Built to be a plausible stand-in for `ubuntu-latest`, not a minimal image: a
 # workflow that runs on GitHub's runner and then here should fail for reasons
@@ -20,19 +20,19 @@ FROM ubuntu:24.04
 ARG RUNNER_VERSION=2.336.0
 ARG GH_VERSION=2.97.0
 # The uid of the host user, passed in by `ci-runner.sh build`. It had to match
-# while the work folder was a bind mount from the host (until an earlier change): its files
+# while the work folder was a bind mount from the host : its files
 # carried the *host* uid, and a tool that checks ownership rejected the
 # checkout outright. git is talked out of that by the /etc/gitconfig written
 # below — but libgit2 is not git and ignores safe.directory entirely, so
 # cocogitto depended on this uid matching. It failed with "repository path ...
-# is not owned by current user" on run 32246300597, three steps after the
+# is not owned by current user", three steps after the
 # checkout every other tool had been happy with. The checkout is now made by
 # `runner` inside the container, so it always matches; the host uid is kept
 # because nothing is gained by changing the image's uid under the volumes.
 #
 # For a year this comment claimed safe.directory was already in force. It was
 # not — nothing set it anywhere, and the claim is a large part of why the same
-# root cause was diagnosed from scratch twice (demo-app an earlier change, then an earlier change).
+# root cause was diagnosed from scratch twice (a project then ).
 ARG RUNNER_UID=1001
 ARG TARGETARCH
 
@@ -47,7 +47,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 #     initdb/pg_ctl as `runner`, in its own temp dir, and loses with the
 #     container. The hosted image ships the same (PostgreSQL 16, service
 #     off). This is what replaced `docker run postgres` once the socket went
-#     (an earlier change, demo-app an earlier change). The cluster apt creates on install is dropped
+#     (a project ). The cluster apt creates on install is dropped
 #     below: nothing would start it, and a job must not find a database it
 #     did not make;
 #   - Chromium's shared libraries, because `npx playwright install chromium`
@@ -96,7 +96,7 @@ RUN set -eux; \
     gh --version; /opt/runner/bin/Runner.Listener --version
 
 # The runner refuses to run as root, and it is right to: a job here executes
-# the pull request's own dependency tree (the design docs), and Chromium will not
+# the pull request's own dependency tree (the architecture docs), and Chromium will not
 # start as root without --no-sandbox — which the workflow does not pass,
 # because on the hosted runner it does not have to. The name stays `runner` as
 # on GitHub's images; the uid follows the host instead, for the reason above.
@@ -104,10 +104,10 @@ RUN set -eux; \
 # needs it, and then looks like a broken workflow rather than a wrong runner:
 # `runner` can write to /usr/local/bin. Real steps install tools with a bare
 # `install -m 0755 ... /usr/local/bin/x` and no sudo, which works there and
-# failed here with "Permission denied" — found by run 32245948670, the first
+# failed here with "Permission denied" — found by, the first
 # real job this runner took. The other piece, passwordless sudo, was removed on
 # 2026-11-03 when work folders and tool caches were shared across
-# repositories. Under an earlier change the work folder lives inside the ephemeral container
+# repositories. Under the work folder lives inside the ephemeral container
 # and dies with it (--rm), the seed volume is mounted read-only (:ro), and
 # persistent caches are isolated per-slug and auto-repaired by entrypoint.sh.
 # Passwordless sudo is restored so community actions using `sudo apt-get install`
@@ -132,7 +132,7 @@ RUN set -eux; \
     && chmod 0440 /etc/sudoers.d/runner
 
 # git's dubious-ownership check, turned off for this container and only this
-# container — demo-app an earlier change.
+# container — a project .
 #
 # The work folder is a VirtioFS bind mount of a macOS path. Its files are the
 # host uid on the host, and `RUNNER_UID` above exists so that matches inside.
@@ -146,8 +146,8 @@ RUN set -eux; \
 # accepts --no-index, so it takes git's gentle repository discovery, downgrades
 # an ownership rejection to "there is no repository here", and then rejects the
 # revision range as a usage error. One condition, two messages, two exit codes
-# (128 and 129), and neither of them says "ownership" — which is how demo-app
-# an earlier change was closed as an environment blip with the word `dubious` sitting in its
+# (128 and 129), and neither of them says "ownership" — which is how a project
+# was closed as an environment blip with the word `dubious` sitting in its
 # own log.
 #
 # Why here and not in a workflow step: `actions/checkout` does add the checkout
@@ -159,7 +159,7 @@ RUN set -eux; \
 #
 # Why `*` and not a path list: the path changed per repository and per slot
 # while work folders were host directories, and a stale list fails exactly
-# like no list at all. Since an earlier change the checkout is `runner`'s own and the
+# like no list at all. Since the checkout is `runner`'s own and the
 # ownership check would pass without this; it stays because the VirtioFS case
 # above is Docker Desktop's to reintroduce through any future mount.
 #
@@ -172,9 +172,9 @@ RUN set -eux; \
 # 2026-09-21 to 2026-11-02 this comment said "exactly one bind mount" while a
 # read-write tool cache and ~/.cache were shared by every job of every
 # repository; it was found by reading, not by anything failing.
-# Until an earlier change the work folder itself outlived the container, so a repository
+# Until the work folder itself outlived the container, so a repository
 # planted with a hook by one job was opened by the next job of that repository
-# (scrub-git.sh emptied what it could, an earlier change). It no longer outlives it. If
+# (scrub-git.sh emptied what it could, ). It no longer outlives it. If
 # this changes — another shared writable mount, or a runner reused across
 # jobs — this line has to be revisited rather than inherited.
 RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitconfig

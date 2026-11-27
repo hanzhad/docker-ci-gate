@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Runs after every job, as `runner`, via ACTIONS_RUNNER_HOOK_JOB_COMPLETED
-# (set in the Dockerfile) — host-repo an earlier change, an earlier change.
+# (set in the Dockerfile) — the repository .
 #
 # The working tree and build artifacts (/opt/runner/_work) live in the
 # container's ephemeral layer and die with it (docker run --rm).
