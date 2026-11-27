@@ -164,7 +164,7 @@
 # — not `adopt` — is what decides which class it runs as.
 #
 # No tunnel, no port forwarding, nothing published: everything here dials
-# GitHub outward. See the design docs, and README.md next to this file for
+# GitHub outward. See the architecture docs, and README.md next to this file for
 # the setup with URLs.
 # END-USAGE
 set -euo pipefail
@@ -191,7 +191,7 @@ GATE_IMAGE="${CI_GATE_IMAGE:-ci-gate:local}"
 # Mirrored in gate.sh, which mounts it :ro into every runner.
 SEED_VOLUME=ci-runner-seed
 STATE_ROOT="${CI_RUNNER_STATE_DIR:-$HOME/.local/state/ci-runner}"
-# Where runners' work folders lived on the host until an earlier change, and nothing
+# Where runners' work folders lived on the host until and nothing
 # writes now: a runner's checkout is inside its own container and goes with
 # it. Kept so `purge` can remove what an older gate left behind.
 WORK_ROOT="${CI_RUNNER_WORK_ROOT:-$HOME/.ci-runner/work}"
@@ -245,7 +245,7 @@ repo_of() {
 slug_of() { printf '%s\n' "$1" | tr '/[:upper:]' '-[:lower:]'; }
 GATE_NAME="ci-gate"
 COLD_TOPIC="${CI_RUNNER_COLD_TOPIC:-ci-local-cold}"
-# Gone with an earlier change: this topic gave a repository's runners the host's docker
+# Gone with : this topic gave a repository's runners the host's docker
 # socket (`adopt --docker`, 2026-09-21 to 2026-11-03). The gate no longer
 # reads it; adopt and forget still strip it so a leftover cannot look like it
 # means something.
@@ -388,7 +388,7 @@ cmd_build() {
   : "${runner_version:=$RUNNER_VERSION_FALLBACK}"; : "${gh_version:=$GH_VERSION_FALLBACK}"
   note "runner $runner_version, gh $gh_version"
   # The uid is the host's. It had to be while the work folder was bind-mounted
-  # from here (until an earlier change); it stays so the image does not change under the
+  # from here ; it stays so the image does not change under the
   # per-repository volumes it already owns.
   docker build --build-arg "RUNNER_VERSION=$runner_version" --build-arg "GH_VERSION=$gh_version" \
     --build-arg "RUNNER_UID=$(id -u)" \
@@ -909,7 +909,7 @@ gate_locked() {
   docker exec "$1" test -s /run/gate/pat >/dev/null 2>&1 && printf 'unlocked\n' || printf 'LOCKED\n'
 }
 gate_expiry() { docker exec "$1" cat /run/gate/pat.expiry 2>/dev/null | tr -d '\n'; }
-# The owners holding a token of their own, with its expiry: "acme-org (2026-12-01 …)".
+# The owners holding a token of their own, with its expiry: "owner (2026-12-01 …)".
 gate_owner_tokens() {
   docker exec "$1" sh -c 'for f in /run/gate/pat.d/*; do
       case $f in *.expiry|*"*") continue ;; esac
@@ -1000,7 +1000,7 @@ budget_summary() {
 #
 # The account's own repositories first, then each organisation it belongs to:
 # `gh repo list` with no owner lists only the account's, so an organisation's
-# repository with the topic was silently never served (acme-org/backend,
+# repository with the topic was silently never served (owner/repo,
 # 2026-10-06). An organisation's repositories need that owner's token in the
 # gate — `unlock --owner` — and the gate logs a 404 for them until it has one.
 registry() {
@@ -1427,7 +1427,7 @@ minutes_remaining() {
   awk -v i="$included" -v u="$used" 'BEGIN { r = i - u; print (r > 0 ? r : 0) }'
 }
 
-# 15 minutes is how long the panel's answers are kept: it asks often, and every
+# 15 minutes is how long status consumers' answers are kept: it asks often, and every
 # answer is an API call (the variable per repository, and the registry). Mutators
 # already update/invalidate caches synchronously.
 CI_RUNNER_CACHE_TTL=${CI_RUNNER_CACHE_TTL:-900}
@@ -1723,7 +1723,7 @@ purge_project() {
 }
 
 # rm -rf that says when it could not finish. A work folder left by a gate
-# older than an earlier change has root-owned directories in it — docker made them as the
+# older than has root-owned directories in it — docker made them as the
 # source of a bind mount — and the host user cannot remove those. That needs
 # the owner's sudo, which this tool does not reach for.
 remove_tree() {
@@ -1741,7 +1741,7 @@ cmd_purge() {
   docker rm --force "$GATE_NAME" >/dev/null 2>&1 || true
   docker ps --all --format '{{.Names}}' | grep '^ci-runner-' \
     | while read -r n; do docker rm --force "$n" >/dev/null 2>&1; done
-  # The last three are the shared read-write volumes an earlier change retired; a machine
+  # The last three are the shared read-write volumes retired; a machine
   # that never redeployed since may still have them.
   docker volume ls --quiet | grep -E '^ci-runner-(npm|cache|pnpm|git)-' | xargs -r docker volume rm >/dev/null 2>&1 || true
   docker volume rm "$SEED_VOLUME" ci-runner-toolcache ci-runner-npm ci-runner-cache >/dev/null 2>&1 || true
@@ -1775,7 +1775,7 @@ cmd_doctor() {
     absent) printf '! no gate on this machine — run: ci-runner.sh up\n' ;;
     *) printf '! the gate exists but is %s\n' "$(gate_state "$GATE_NAME")" ;;
   esac
-  # -x: a registry line is the bare owner/repo since an earlier change; "^$repo " matched
+  # -x: a registry line is the bare owner/repo since ; "^$repo " matched
   # the second column that is gone.
   registry | grep -qx "$repo" && ok "$repo is in the registry" \
     || { printf '✗ %s is not in the registry — run: ci-runner.sh adopt %s\n' "$repo" "$repo"; rc=1; }

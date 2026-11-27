@@ -25,7 +25,7 @@
 #
 # Most jobs are cheap — lint, typecheck, unit, a couple of cores for a few
 # minutes — and get the little class if a workflow opts in; the expensive one
-# is e2e, now once per pull request since demo-app gates it on
+# is e2e, now once per pull request since a project gates it on
 # ready-for-review, and stays on big by default. `cost` is what the budget
 # counts: expected cores under contention, not the `--cpus` ceiling, because
 # the ceiling already summed to 44 on 14 cores under the old per-repository
@@ -196,7 +196,7 @@ read_limit() {
 # checkout lived at $WORK_ROOT/<repo>/<slot> on the host and outlived it, so
 # the next runner of that slot fetched instead of cloning. It saved no
 # transfer — a fetch into a shallow clone brings a whole snapshot — and
-# nothing bounded it: demo-app's slot 1 reached 5.5 GB, 277 packs, root-owned
+# nothing bounded it: a project's slot 1 reached 5.5 GB, 277 packs, root-owned
 # parents the host user could not remove. The work folder is now the
 # runner's own `_work`, inside its container, and goes with it.
 POLL_DEFAULT=20
@@ -210,7 +210,7 @@ if [ -z "${POLL_IDLE+x}" ]; then
 fi
 COLD_QUIET=${COLD_QUIET:-3}      # quiet ticks, nothing queued, before an idle runner is reaped
 # How long one of OUR runners may stay busy before the gate stops believing
-# it. Measured 2026-09-22, demo-app run 35752262905 on the Windows host: the
+# it. Measured a project on the Windows host: the
 # job's own work finished in 127 seconds, every check green, and the runner
 # then sat in `Post Run actions/checkout@v7` — the step that unsets the git
 # credential config — for 27 minutes, until a person cancelled the run. The
@@ -256,7 +256,7 @@ REPOS_FILE=${REPOS_FILE:-/run/gate/repos}
 # so a reboot clears both: a machine that comes back comes back serving.
 PAUSE_FILE=${PAUSE_FILE:-/run/gate/paused}
 # What the gate reports about itself, rewritten every tick whether it is locked
-# or not: `ci-runner.sh status --json` reads it with `docker exec` and the panel
+# or not: `ci-runner.sh status --json` reads it with `docker exec` and status consumers
 # shows it, so nothing has to scrape this log. On the same tmpfs, mode 0700,
 # for the same reason as the token; it holds no token and nothing read from a
 # token file reaches it (status.schema.json describes it).
@@ -525,7 +525,7 @@ start_runner() {
   # for a linter image and a throwaway postgres; a container with that socket
   # is the host, and once the caches were split it was the one mount
   # left that made every other boundary optional. The two repositories that
-  # had it no longer need it (demo-app an earlier change: postgres by initdb, actionlint
+  # had it no longer need it (a project : postgres by initdb, actionlint
   # as a pinned binary), so the option is gone rather than off.
 
   # CI_CPUS below is how many cores this container may actually use. `--cpus`
@@ -545,7 +545,7 @@ start_runner() {
   # whatever a job writes beside them live in the container's writable layer
   # and go with --rm. The only things that outlive a job are the volumes below.
   #
-  # The caches are split by who may write them, an earlier change.
+  # The caches are split by who may write them, .
   #   - ci-runner-seed is the toolchain every job executes (node, Playwright's
   #     browsers). Only `ci-runner.sh seed` writes it; here it is :ro, and
   #     the job has no root to remount it with. entrypoint.sh
@@ -556,7 +556,7 @@ start_runner() {
   #     The git volume is pre-populated into the runner workspace before the job
   #     and synced back on completion, so checkouts fetch rather than clone.
   # --init, because runuser is otherwise PID 1 and reaps nothing: about 450
-  # zombies by the middle of a host-repo job, which no GitHub runner has.
+  # zombies by the middle of a the repository job, which no GitHub runner has.
   docker run --detach --rm --init \
     --name "$name" \
     --cpus "$cpus" \
@@ -653,7 +653,7 @@ declare -A run_nonlocal
 # run is queued" turned out false for a re-run: GitHub puts the run back on
 # the queue a second before it creates the new attempt's jobs, and a gate that
 # asked in that second cached "nothing for us" and never asked again —
-# acme-org/backend run 37537010109 sat queued for an hour, 2026-10-07. Keyed
+# owner/repo sat queued for an hour, 2026-10-07. Keyed
 # by attempt as well, so a re-run is a new question. One call per queued run
 # per five minutes is still far from the rate limit that made this a cache.
 # Stale (>1h) runs with no local jobs (0-job ghosts or non-local workflows)
@@ -1193,7 +1193,7 @@ while true; do
     done
   done < <(cat "$REPOS_FILE")
 
-  # Until an earlier change a job could start sibling containers over the socket, and the
+  # Until a job could start sibling containers over the socket, and the
   # docker shim named them `<name>__<runner id>`; a workflow written for a
   # hosted VM never removed them, so every e2e job left a `ci-postgres__…`
   # behind (nine, four days old, 2026-09-21; hundreds of their anonymous

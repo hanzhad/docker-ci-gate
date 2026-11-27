@@ -5,9 +5,9 @@
 # caches that outlive a job: this repository's ~/.npm and ~/.cache volumes
 #.
 #
-# A cache rebuilt once is cheaper than a disk nobody watches. Until an earlier change the
+# A cache rebuilt once is cheaper than a disk nobody watches. Until the
 # only thing that outlived a job besides these was the work folder, and
-# nothing bounded it: demo-app's reached 5.5 GB. The volumes are smaller
+# nothing bounded it: a project's reached 5.5 GB. The volumes are smaller
 # (598 MB and 333 MB on 2026-11-06) and were just as unbounded — npm's
 # _cacache keeps every tarball every lockfile ever named.
 #

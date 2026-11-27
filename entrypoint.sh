@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
 # Main process of a self-hosted runner container. It runs as root for exactly two
-# things, then drops to `runner` and never comes back — the design docs.
+# things, then drops to `runner` and never comes back — the architecture docs.
 #
 # There used to be two more. From 2026-09-21 to 2026-11-03, a socat proxy in
 # front of the host's docker socket, owned by `runner`, for the repositories
 # that carried the ci-local-docker topic; no runner gets the socket any more
-#, so there is nothing to proxy. And until an earlier change, repairing the
+#, so there is nothing to proxy. And until repairing the
 # ownership of a work folder bind-mounted from the host and scrubbing the
 # `.git` the previous job had left in it. The work folder is now the runner's
 # own `_work`, inside this container, and goes with it — nothing to repair,
@@ -19,16 +19,16 @@
 #      there were two: the host port is contended, and if something unrelated
 #      already listens there — a developer's own postgres, say — the
 #      connection *succeeds* against the wrong database. A job now starts what
-#      it needs inside its own container (demo-app an earlier change). Set
+#      it needs inside its own container (a project ). Set
 #      CI_RUNNER_LOOPBACK_PORTS only for a service that really lives on the
 #      host.
 #
 #   2. the caches and git pre-population. Named volumes are handed to `runner`,
 #      after any is emptied if it has grown past CI_CACHE_CAP_MB (cache-cap.sh,
-#      an earlier change); if a saved .git exists in the git volume, it is scrubbed and
+#      ); if a saved .git exists in the git volume, it is scrubbed and
 #      copied into the runner's workspace; npx's installed trees are cleared;
 #      and the read-only seed is linked into the tool cache and Playwright's
-#      browser directory — see below and an earlier change.
+#      browser directory — see below and .
 #
 # The runner itself is given its credential as a JIT config: one registration,
 # one job, then the process exits and the container with it. There is nothing
@@ -127,7 +127,7 @@ fi
 # that runs it with the store's secrets. So every job starts without one.
 rm -rf /home/runner/.npm/_npx
 
-# The read-only seed (an earlier change, gate.sh) is linked in, one entry per version, so a
+# The read-only seed (gate.sh) is linked in, one entry per version, so a
 # job finds what was seeded already installed and anything else it downloads
 # lands in the container's own writable directory and dies with it. The links
 # are the job's to remove; what they point at is not.

@@ -8,8 +8,5 @@
 #   playwright <exact version>    the browsers `npx playwright install chromium`
 #                                 fetches for that version of playwright-core
 #
-# node 24: host-repo's check.yml asks for `24`, both project repositories' .nvmrc
-# say `24`, and setup-node takes any cached 24.x for that.
-# playwright 1.61.1: the locked playwright-core in both project repositories.
 node 24.21.0
 playwright 1.61.1
